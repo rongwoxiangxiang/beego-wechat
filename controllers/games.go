@@ -22,7 +22,6 @@ func (this *GameController) List(){
 	page, _  := this.GetInt("page",1)
 	size, _  := this.GetInt("size",20)
 	games := models.Game{}.LimitList(size, page)
-	//game, err := models.Find(&models.Game{Id:1})
 	if len(games) <= 0 {
 		games = []models.Game{}
 	}
@@ -38,8 +37,7 @@ func (this *GameController) List(){
  */
 func (this *GameController) View(){
 	id, _ := this.GetInt64(":id")
-	game, err := models.Game{Id:id}.Find()
-	//game, err := models.Find(&models.Game{Id:1})
+	game, err := models.Game{Id:id}.Get()
 	if err != nil {
 		this.Response(common.ErrDataUnExist.Code,common.ErrDataUnExist.Msg)
 		return
@@ -57,7 +55,7 @@ func (this *GameController) View(){
 func (this *GameController) DeleteGame() {
 	id, _  := this.GetInt64(":id")
 	game   := models.Game{Id:id}
-	_, err := game.Find()
+	_, err := game.Get()
 	if err != nil {
 		this.Response(common.ErrDataUnExist.Code,common.ErrDataUnExist.Msg)
 		return
@@ -80,7 +78,7 @@ func (this *GameController) DeleteGame() {
  */
 func (this *GameController) UpdateGame() {
 	id, _  := this.GetInt64(":id")
-	game, err := models.Game{Id:id}.Find()
+	game, err := models.Game{Id:id}.Get()
 	if err != nil {
 		this.Response(common.ErrClientParams.Code, common.ErrClientParams.Msg)
 	}

@@ -10,7 +10,7 @@ import (
 type BaseModel struct {
 }
 
-var DB orm.Ormer
+var db orm.Ormer
 //数据库连接
 func Connect() {
 	var dsn string
@@ -26,15 +26,17 @@ func Connect() {
 
 	orm.RegisterDataBase("default", db_type, dsn)
 
-	DB = orm.NewOrm()
+	db = orm.NewOrm()
 }
 
 func GetDB() orm.Ormer {
-	return DB
+	orm.Debug = true
+	return orm.NewOrm()
+	//return db
 }
 
 //调用时传值
-func Find(model interface{}) (interface{}, error){
+func Get(model interface{}) (interface{}, error){
 	err := GetDB().Read(model)
 	if err != nil{
 		return model, nil

@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+
 	models.Connect()
 	beego.Run()
 }

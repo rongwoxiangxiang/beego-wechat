@@ -36,7 +36,8 @@ func (g Game) Update() (Game, error){
 	return g,nil
 }
 
-func (g Game) Find() (Game, error){
+//根据id查询Game{Id:id}
+func (g Game) Get() (Game, error){
 	err := GetDB().Read(&g)
 	if err != nil{
 		return Game{},common.ErrDataUnExist

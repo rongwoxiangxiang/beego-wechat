@@ -1,11 +1,9 @@
 appname = gowe
 httpport = 8888
 runmode = dev
-
-copyrequestbody = true
-
 sessionon = true
 
+copyrequestbody = true
 db_host = localhost
 db_port = 3306
 db_user = root

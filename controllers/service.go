@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
-	wechatApi "github.com/silenceper/wechat"
 	"github.com/silenceper/wechat/cache"
 	"github.com/silenceper/wechat/message"
 	"gowe/models"
@@ -23,35 +22,65 @@ func init()  {
 
 func Service(ctx *context.Context) {
 	wechatConfig := config(ctx)
+	flag := ctx.Input.Query(":flag")
+	res := responseText(flag,wechatConfig)
+	fmt.Println(res)
+	//wechatConfig := config(ctx)
+	//server := wechatApi.NewWechat(&wechatApi.Config{
+	//	AppID:          wechatConfig["Appid"].(string),
+	//	AppSecret:      wechatConfig["Appsecret"].(string),
+	//	Token:          wechatConfig["Token"].(string),
+	//	EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
+	//	Cache:			redis,
+	//}).GetServer(ctx.Request, ctx.ResponseWriter)
+	//server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+	//	var msgType message.MsgType
+	//	switch msg.MsgType {
+	//	case message.MsgTypeText:
+	//		return responseText(msg.Content,wechatConfig)
+	//	case message.MsgTypeEvent:
+	//		return responseEvent(msg.EventKey,wechatConfig)
+	//	default:
+	//		return &message.Reply{MsgType: msgType, MsgData: message.NewText(message.MsgTypeVoice)}
+	//	}
+	//})
+	//
+	////处理消息接收以及回复
+	//err := server.Serve()
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	////发送回复的消息
+	//server.Send()
+}
 
-	//配置微信参数
-	config := &wechatApi.Config{
-		AppID:          wechatConfig["Appid"].(string),
-		AppSecret:      wechatConfig["Appsecret"].(string),
-		Token:          wechatConfig["Token"].(string),
-		EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
-		Cache:			redis,
+func responseText(msg string,conf map[string]interface{}) *message.Reply {
+	reply := models.Reply{Wid:int64(conf["Id"].(float64)), Alias:msg}.FindOne()
+	return replyActivity(reply)
+}
+
+func responseEvent(msg string,conf map[string]interface{}) *message.Reply {
+	reply := models.Reply{Wid:int64(conf["Id"].(float64)), ClickKey:msg}.FindOne()
+	return replyActivity(reply)
+}
+
+func replyActivity(reply models.Reply) *message.Reply {
+	if reply.Id > 0 {
+		switch reply.Type {
+		case models.REPLY_TYPE_TEXT:
+			return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+		case models.REPLY_TYPE_CODE:
+			return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+		case models.REPLY_TYPE_LUCKY:
+			return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+		case models.REPLY_TYPE_CHECKIN:
+			return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+		default:
+			return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+		}
 	}
-	wc := wechatApi.NewWechat(config)
-
-	// 传入request和responseWriter
-	server := wc.GetServer(ctx.Request, ctx.ResponseWriter)
-	//设置接收消息的处理方法
-	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
-
-		//回复消息：演示回复用户发送的消息
-		text := message.NewText(msg.Content)
-		return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-	})
-
-	//处理消息接收以及回复
-	err := server.Serve()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	//发送回复的消息
-	server.Send()
+	return &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
 }
 
 func config(ctx *context.Context) map[string]interface{} {

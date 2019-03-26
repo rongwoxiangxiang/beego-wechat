@@ -16,8 +16,8 @@ const (
 type Reply struct {
 	Id  int64 `orm:"pk;auto"`
 	Wid int64 `orm:"default(0);index"`
-	ActivityId   string `orm:"default(0)"`
-	Alias  string `orm:"size(200)"`
+	ActivityId int64 `orm:"default(0)"`
+	Alias string `orm:"size(200)"`
 	ClickKey string `orm:"size(50)"`
 	Success string `orm:"size(250)"`
 	Fail string `orm:"size(250)"`

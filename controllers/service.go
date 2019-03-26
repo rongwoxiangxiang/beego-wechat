@@ -1,30 +1,36 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	wechatApi "github.com/silenceper/wechat"
-	//"github.com/silenceper/wechat/cache"
+	"github.com/silenceper/wechat/cache"
 	"github.com/silenceper/wechat/message"
 	"gowe/models"
+	"time"
 )
 
-func Service(ctx *context.Context) {
-	//cache.NewRedis(&cache.RedisOpts{Host:"127.0.0.1:6379"})
-	//
-	flag := ctx.Input.Query(":flag")
-	//wechatConfig := cache.Redis{}.Get(flag)
+var redis *cache.Redis
 
-	wechatConfig := models.Wechat{Flag:flag}.Find()
-	if len(wechatConfig) <= 0 {
-		return
+func init()  {
+	opts := &cache.RedisOpts{
+		Host: beego.AppConfig.String("redis_host"),
 	}
+	redis = cache.NewRedis(opts)
+}
+
+func Service(ctx *context.Context) {
+	wechatConfig := config(ctx)
+
 	//配置微信参数
 	config := &wechatApi.Config{
-		AppID:          wechatConfig[0].Appid,
-		AppSecret:      wechatConfig[0].Appsecret,
-		Token:          wechatConfig[0].Token,
-		EncodingAESKey: wechatConfig[0].EncodingAesKey,
+		AppID:          wechatConfig["Appid"].(string),
+		AppSecret:      wechatConfig["Appsecret"].(string),
+		Token:          wechatConfig["Token"].(string),
+		EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
+		Cache:			redis,
 	}
 	wc := wechatApi.NewWechat(config)
 
@@ -46,4 +52,20 @@ func Service(ctx *context.Context) {
 	}
 	//发送回复的消息
 	server.Send()
+}
+
+func config(ctx *context.Context) map[string]interface{} {
+	var mp map[string]interface{}
+	flag := ctx.Input.Query(":flag")
+	wechatConfig := redis.Get(flag)
+	if wechatConfig != nil {
+		return wechatConfig.(map[string]interface{})
+	}
+	wechatStruct  := models.Wechat{Flag:flag}.Find()
+	wechatJson, _ := json.Marshal(wechatStruct[0])
+	json.Unmarshal([]byte(wechatJson), &mp)
+	if err := redis.Set(flag, mp, 10 * time.Hour); err != nil {
+		fmt.Println("cache: set wechat config error", err)
+	}
+	return mp
 }

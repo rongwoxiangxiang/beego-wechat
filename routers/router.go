@@ -6,7 +6,6 @@ import (
 )
 
 func init() {
-    beego.Router("/", &controllers.MainController{}, )
     beego.Router("/game/", &controllers.GameController{}, "get:List")
     beego.Router("/game/:id:int", &controllers.GameController{}, "get:View")
 	beego.Router("/game/:id:int", &controllers.GameController{}, "delete:DeleteGame")

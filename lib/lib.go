@@ -3,6 +3,7 @@ package lib
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"reflect"
 	"strconv"
 )
 
@@ -32,4 +33,15 @@ func StringsToJson(str string) string {
 	}
 
 	return jsons
+}
+
+func StructToMap(obj interface{}) map[string]string {
+	obj1 := reflect.TypeOf(obj)
+	obj2 := reflect.ValueOf(obj)
+
+	var data= make(map[string]string)
+	for i := 0; i < obj1.NumField(); i++ {
+		data[obj1.Field(i).Name] = obj2.Field(i).Interface().(string)
+	}
+	return data
 }

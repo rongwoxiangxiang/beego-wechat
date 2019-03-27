@@ -139,15 +139,15 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 	if checkin.Id == 0 {
 		return models.CHECK_FAIL
 	}
-
 	lastCheckinDate := checkin.Lastcheckin.Format("2006-01-02")
+	if lastCheckinDate == time.Now().Format("2006-01-02") {
+		return strings.
+			NewReplacer("%liner%", string(checkin.Liner), "%total%", string(checkin.Total)).
+			Replace(reply.Success)
+	}
 	if lastCheckinDate == time.Now().Add(-24 * time.Hour).Format("2006-01-02"){//连续签到
 		checkin.Liner = checkin.Liner + 1
 	}
-	if lastCheckinDate == time.Now().Format("2006-01-02") {
-		return reply.Success
-	}
-
 	checkin.Total = checkin.Total + 1
 	checkin.Lastcheckin = time.Now()
 	_, err := checkin.Update()

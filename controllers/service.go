@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"gowe/common"
+	"strconv"
 	"strings"
 	wechatApi "github.com/silenceper/wechat"
 	"github.com/astaxie/beego/context"
@@ -142,7 +143,7 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 	lastCheckinDate := checkin.Lastcheckin.Format("2006-01-02")
 	if lastCheckinDate == time.Now().Format("2006-01-02") {
 		return strings.
-			NewReplacer("%liner%", string(checkin.Liner), "%total%", string(checkin.Total)).
+			NewReplacer("%liner%",  strconv.FormatInt(checkin.Liner, 10), "%total%", strconv.FormatInt(checkin.Total, 10)).
 			Replace(reply.Success)
 	}
 	if lastCheckinDate == time.Now().Add(-24 * time.Hour).Format("2006-01-02"){//连续签到
@@ -155,7 +156,7 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 		return models.CHECK_FAIL
 	}
 	return strings.
-		NewReplacer("%liner%", string(checkin.Liner), "%total%", string(checkin.Total)).
+		NewReplacer("%liner%", strconv.FormatInt(checkin.Liner, 10), "%total%", strconv.FormatInt(checkin.Total, 10)).
 		Replace(reply.Success)
 }
 

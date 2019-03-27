@@ -27,7 +27,7 @@ var (
 	Success  		  = Err{Code: 200, Msg: "SUCCESS"}
 	ErrClientParams   = Err{Code: 4000, Msg: "缺少必要参数，或者参数值/路径格式不正确。"}
 
-	ErrUnKnow         = Err{Code: 9000, Msg: "位置错误，请稍后重试。"}
+	ErrUnKnow         = Err{Code: 9000, Msg: "未知错误，请稍后重试。"}
 
 
 	//ErrAuthorized     = Err{Code: 4100, Msg: "签名鉴权失败，请参考文档中鉴权部分。"}
@@ -51,6 +51,10 @@ var (
 
 
 	ErrUserNoExist        = Err{Code: 10030, Msg: "用户不存在,请检查后重试。"}
+	ErrLuckFinal		  = Err{Code: 10040, Msg: "奖品已发放完毕。"}
+	ErrLuckFail		      = Err{Code: 10050, Msg: "活动太火爆了，请稍后重试。"}
+
+
 	//ErrUserNameFormat     = Err{Code: 10040, Msg: fmt.Sprintf("用户名需字母开头长度(%d~%d)位字母数字_。", LenUserNameMin, LenUserNameMax)}
 	//ErrUserPwdFormat      = Err{Code: 10050, Msg: fmt.Sprintf("密码需字母开头长度(%d~%d)位字母数字_。", LenUserNameMin, LenPasswordMax)}
 	//ErrUserDescLen        = Err{Code: 10060, Msg: fmt.Sprintf("描述长度不能超过%d位,请改正后重试。", LenDesc)}

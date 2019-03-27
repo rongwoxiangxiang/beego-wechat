@@ -13,6 +13,8 @@ const (
 	REPLY_TYPE_CHECKIN = "checkin"
 )
 
+const PLEASE_TRY_AGAIN = "活动太火爆了，请稍后重试"
+
 type Reply struct {
 	Id  int64 `orm:"pk;auto"`
 	Wid int64 `orm:"default(0);index"`

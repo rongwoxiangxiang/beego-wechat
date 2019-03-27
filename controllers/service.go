@@ -6,8 +6,7 @@ import (
 	"github.com/astaxie/beego"
 	"gowe/common"
 	"strings"
-
-	//wechatApi "github.com/silenceper/wechat"
+	wechatApi "github.com/silenceper/wechat"
 	"github.com/astaxie/beego/context"
 	"github.com/silenceper/wechat/cache"
 	"github.com/silenceper/wechat/message"
@@ -26,34 +25,25 @@ func init()  {
 
 func Service(ctx *context.Context) {
 	wechatConfig := config(ctx)
-	flag := ctx.Input.Query(":flag")
-	msg := message.MixMessage{Content:flag}
-	msg.FromUserName = "dsadsadasda"
-	msg.SetMsgType(message.MsgTypeText)
-	res := responseEventText(msg,wechatConfig)
-	fmt.Println(res)
+	server := wechatApi.NewWechat(&wechatApi.Config{
+		AppID:          wechatConfig["Appid"].(string),
+		AppSecret:      wechatConfig["Appsecret"].(string),
+		Token:          wechatConfig["Token"].(string),
+		EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
+		Cache:			redis,
+	}).GetServer(ctx.Request, ctx.ResponseWriter)
+	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+		return responseEventText(msg,wechatConfig)
 
-	//wechatConfig := config(ctx)
-	//server := wechatApi.NewWechat(&wechatApi.Config{
-	//	AppID:          wechatConfig["Appid"].(string),
-	//	AppSecret:      wechatConfig["Appsecret"].(string),
-	//	Token:          wechatConfig["Token"].(string),
-	//	EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
-	//	Cache:			redis,
-	//}).GetServer(ctx.Request, ctx.ResponseWriter)
-	//server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
-	//	return responseEventText(msg,wechatConfig)
-	//
-	//})
-	//
-	////处理消息接收以及回复
-	//err := server.Serve()
-	//if err != nil {
-	//	fmt.Println(err)
-	//	return
-	//}
-	////发送回复的消息
-	//server.Send()
+	})
+
+	//处理消息接收以及回复
+	err := server.Serve()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	server.Send()
 }
 
 func responseEventText(msg message.MixMessage ,conf map[string]interface{}) *message.Reply {
@@ -86,9 +76,15 @@ func replyActivity(reply models.Reply, userOpenId string)(msgReply *message.Repl
 				MsgData: message.NewText(doReplyCode(reply, userOpenId)),
 			}
 		case models.REPLY_TYPE_LUCKY:
-			msgReply = &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+			msgReply = &message.Reply{
+				MsgType: message.MsgTypeText,
+				MsgData: message.NewText(doReplyLuck(reply, userOpenId)),
+			}
 		case models.REPLY_TYPE_CHECKIN:
-			msgReply = &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+			msgReply = &message.Reply{
+				MsgType: message.MsgTypeText,
+				MsgData: message.NewText(doReplyCheckin(reply, userOpenId)),
+			}
 		default:
 			msgReply = &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
 		}
@@ -100,21 +96,73 @@ func doReplyCode(reply models.Reply, userOpenId string) string {
 	wechatUser := getWechatUser(userOpenId)
 	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
 	if len(history) > 0 {
-		return strings.Replace(reply.Success, "%code%", history[0].Prize, 1)
+		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
 	}
-	prize := models.Prize{ActivityId:reply.ActivityId, Level:int8(models.PRIZE_LEVEL_DEFAULT), Used:common.NO_VALUE}.FindOneUsedCode()
+	prize, err := models.Prize{ActivityId:reply.ActivityId, Level:int8(models.PRIZE_LEVEL_DEFAULT), Used:common.NO_VALUE}.FindOneUsedCode()
+	if err == common.ErrDataUnExist {
+		return reply.Fail
+	}
 	if prize.Code != "" {
-		return strings.Replace(reply.Success, "%code%", prize.Code, 1)
+		_, err = models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id,Prize:prize.Code}.Insert()
+		if err != nil {
+			return reply.Fail
+		}
+		return strings.Replace(reply.Success, "%prize%", prize.Code, 1)
 	}
-	return reply.Fail
+	return models.PLEASE_TRY_AGAIN
+}
+
+func doReplyLuck(reply models.Reply, userOpenId string) string {
+	wechatUser := getWechatUser(userOpenId)
+	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
+	if len(history) > 0 {
+		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
+	}
+	//TODO，多次参与
+
+	luck, err := models.Lottery{Wid:reply.Wid, ActivityId:reply.ActivityId}.Luck()
+	if err == common.ErrLuckFinal {
+		return common.ErrLuckFinal.Msg
+	}
+	if err != nil {
+		return common.ErrLuckFail.Msg
+	}
+	if luck.Name != "" {
+		_, err = models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id,Prize:luck.Name,Level:luck.Level}.Insert()
+	}
+	return strings.Replace(reply.Success, "%prize%", luck.Name, 1)
+}
+
+func doReplyCheckin(reply models.Reply, userOpenId string) string {
+	wechatUser := getWechatUser(userOpenId)
+	checkin := models.Checkin{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetCheckinByActivityWuid()
+	if checkin.Id == 0 {
+		return models.CHECK_FAIL
+	}
+
+	lastCheckinDate := checkin.Lastcheckin.Format("2006-01-02")
+	if lastCheckinDate == time.Now().Add(-24 * time.Hour).Format("2006-01-02"){//连续签到
+		checkin.Liner = checkin.Liner + 1
+	}
+	if lastCheckinDate == time.Now().Format("2006-01-02") {
+		return reply.Success
+	}
+
+	checkin.Total = checkin.Total + 1
+	checkin.Lastcheckin = time.Now()
+	_, err := checkin.Update()
+	if err != nil {
+		return models.CHECK_FAIL
+	}
+	return strings.
+		NewReplacer("%liner%", string(checkin.Liner), "%total%", string(checkin.Total)).
+		Replace(reply.Success)
 }
 
 func getWechatUser(userOpenId string) (wu models.WechatUser) {
 	wu.Openid = userOpenId
 	return wu.GetByOpenid()
 }
-
-
 
 func config(ctx *context.Context) map[string]interface{} {
 	var mp map[string]interface{}

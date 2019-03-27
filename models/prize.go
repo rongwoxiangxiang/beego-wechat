@@ -25,19 +25,23 @@ func (wu *Prize) TableName() string {
 	return "prizes"
 }
 
-func (p Prize) FindOneUsedCode() (prize Prize) {
-	GetDB().QueryTable(p.TableName()).
+func (p Prize) FindOneUsedCode() (prize Prize,err error) {
+	err = GetDB().QueryTable(p.TableName()).
 		Filter("activity_id", p.ActivityId).
 		Filter("level", p.Level).
 		Filter("used", common.NO_VALUE).
 		One(&prize)
-	//TODO 额外判断
-	_, err := GetDB().QueryTable(p.TableName()).
+	if err != nil && prize.Code == "" {
+		err = common.ErrDataUnExist
+		return
+	}
+	_, err = GetDB().QueryTable(p.TableName()).
 		Filter("id", prize.Id).
 		Filter("used", common.NO_VALUE).
 		Update(orm.Params{"used": common.YES_VALUE})//乐观锁
 	if err != nil {
-
+		err = common.ErrDataUpdate
+		return
 	}
 	return
 }

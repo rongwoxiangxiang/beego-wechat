@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	wechatApi "github.com/silenceper/wechat"
+	wechatUserApi "github.com/silenceper/wechat/user"
 	"github.com/astaxie/beego/context"
 	"github.com/silenceper/wechat/cache"
 	"github.com/silenceper/wechat/message"
@@ -163,7 +164,26 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 func getWechatUser(userOpenId string, wid int64) (wu models.WechatUser) {
 	wu.Openid = userOpenId
 	wu.Wid = wid
-	return wu.GetByOpenid()
+	wechatUser := wu.GetByOpenid()
+
+	go func(wechatUser models.WechatUser) {
+		if wechatUser.Openid != "" {
+			wUserApi := &wechatUserApi.User{}
+			userInfo, err := wUserApi.GetUserInfo(userOpenId)
+			if err == nil {
+				wechatUser.Nickname = userInfo.Nickname
+				wechatUser.Sex = userInfo.Sex
+				wechatUser.Province = userInfo.Province
+				wechatUser.City = userInfo.City
+				wechatUser.Country = userInfo.Country
+				wechatUser.Language = userInfo.Language
+				wechatUser.Headimgurl = userInfo.Headimgurl
+				wechatUser.Update()
+			}
+		}
+	}(wechatUser)
+
+	return wechatUser
 }
 
 func config(ctx *context.Context) map[string]interface{} {

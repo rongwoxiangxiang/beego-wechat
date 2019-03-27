@@ -12,7 +12,7 @@ type WechatUser struct {
 	UserId   int64 `orm:"default(0)"`
 	Openid  string `orm:"size(64)"`
 	Nickname string `orm:"size(64)"`
-	Sex int8
+	Sex int32
 	Province string `orm:"size(20)"`
 	City string `orm:"size(20)"`
 	Country string `orm:"size(20)"`

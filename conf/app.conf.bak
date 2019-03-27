@@ -10,3 +10,8 @@ db_user = root
 db_pass = root
 db_name = wechat
 db_type = mysql
+
+
+EnableAdmin = false
+AdminAddr = "localhost"
+AdminPort = 8088

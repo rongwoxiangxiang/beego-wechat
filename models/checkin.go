@@ -25,7 +25,7 @@ func (c *Checkin) TableName() string {
 }
 
 func (c Checkin) GetCheckinByActivityWuid() (checkin Checkin){
-	if c.ActivityId == 0 || c.Wuid == 0{
+	if c.ActivityId == 0 || c.Wuid == 0 || c.Wid == 0{
 		return
 	}
 	GetDB().QueryTable(c.TableName()).
@@ -34,6 +34,7 @@ func (c Checkin) GetCheckinByActivityWuid() (checkin Checkin){
 		One(&checkin)
 	if checkin.Id == 0 {
 		checkin.ActivityId = c.ActivityId
+		checkin.Wid = c.Wid
 		checkin.Wuid = c.Wuid
 		checkin.Lastcheckin = time.Now()
 		checkin.Liner = 1

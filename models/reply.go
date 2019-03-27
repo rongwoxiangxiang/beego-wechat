@@ -79,14 +79,14 @@ func (r Reply) DeleteById() bool{
  * @Success []Reply
  */
 func (r Reply) FindOne() (replies Reply) {
-	qs := GetDB().QueryTable(r.TableName()).Filter("wid", r.Wid).Filter("disabled", common.NO_VALUE)
+	qs := GetDB().QueryTable(r.TableName()).Filter("wid", r.Wid)
 	if "" != r.Alias {
 		qs = qs.Filter("alias", r.Alias)
 	}
 	if "" != r.ClickKey {
 		qs = qs.Filter("click_key", r.ClickKey)
 	}
-	err := qs.One(&replies)
+	err := qs.Filter("disabled", common.NO_VALUE).One(&replies)
 	if err != nil{
 		return Reply{}
 	}

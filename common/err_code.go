@@ -61,12 +61,4 @@ var (
 	//ErrUserAddrLen        = Err{Code: 10070, Msg: fmt.Sprintf("地址长度不能超过%d位,请改正后重试。", LenAddr)}
 	//ErrUserEmailFormat    = Err{Code: 10080, Msg: "邮箱格式不正确,请检查后重试。"}
 	//ErrUserNickNameFormat = Err{Code: 10090, Msg: fmt.Sprintf("昵称长度在(%d~%d)之间,请改正后重试。", LenUserNameMin, LenUserNameMax)}
-	//ErrUpdateParams       = Err{Code: 10100, Msg: "修改用户信息,参数必填其一。"}
-	//ErrUserLinksNoExist   = Err{Code: 10110, Msg: "用户友链数据不存在,请检查后重试。"}
-	//ErrCategoryNoExist    = Err{Code: 10120, Msg: "该分类不存在,请检查后重试。"}
-	//ErrCategoryExist      = Err{Code: 10130, Msg: "该分类已存在,请修改后重试。"}
-	//ErrArticleNoExist     = Err{Code: 10140, Msg: "该文章不存在,请修改后重试。"}
-	//ErrUploadLenNotAllow  = Err{Code: 10150, Msg: "图片上传个数不允许,请修改后重试。"}
-	//ErrUploadExtNotAllow  = Err{Code: 10160, Msg: "仅支持jpg,jpeg,png格式图片,请修改后重试。"}
-	//ErrCollectSource      = Err{Code: 10170, Msg: "文章采集失败,请检查采集Url。"}
 )

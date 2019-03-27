@@ -44,10 +44,10 @@ func (wu WechatUser) Update() (WechatUser, error){
 }
 
 func (wu WechatUser) GetByOpenid() (WechatUser){
-	if wu.Openid == ""{
+	if wu.Openid == "" || wu.Wid == 0{
 		return WechatUser{}
 	}
-	if _, id, err := GetDB().ReadOrCreate(&wu, "openid"); err == nil {
+	if _, id, err := GetDB().ReadOrCreate(&wu, "openid","wid"); err == nil {
 		wu.Id = id
 		return wu
 	}

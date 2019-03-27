@@ -93,7 +93,7 @@ func replyActivity(reply models.Reply, userOpenId string)(msgReply *message.Repl
 }
 
 func doReplyCode(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId)
+	wechatUser := getWechatUser(userOpenId, reply.Wid)
 	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
 	if len(history) > 0 {
 		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
@@ -113,7 +113,7 @@ func doReplyCode(reply models.Reply, userOpenId string) string {
 }
 
 func doReplyLuck(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId)
+	wechatUser := getWechatUser(userOpenId, reply.Wid)
 	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
 	if len(history) > 0 {
 		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
@@ -134,8 +134,8 @@ func doReplyLuck(reply models.Reply, userOpenId string) string {
 }
 
 func doReplyCheckin(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId)
-	checkin := models.Checkin{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetCheckinByActivityWuid()
+	wechatUser := getWechatUser(userOpenId, reply.Wid)
+	checkin := models.Checkin{ActivityId:reply.ActivityId,Wuid:wechatUser.Id,Wid:wechatUser.Wid}.GetCheckinByActivityWuid()
 	if checkin.Id == 0 {
 		return models.CHECK_FAIL
 	}
@@ -159,8 +159,9 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 		Replace(reply.Success)
 }
 
-func getWechatUser(userOpenId string) (wu models.WechatUser) {
+func getWechatUser(userOpenId string, wid int64) (wu models.WechatUser) {
 	wu.Openid = userOpenId
+	wu.Wid = wid
 	return wu.GetByOpenid()
 }
 

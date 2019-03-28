@@ -27,7 +27,7 @@ var (
 	Success  		  = Err{Code: 200, Msg: "SUCCESS"}
 	ErrClientParams   = Err{Code: 4000, Msg: "缺少必要参数，或者参数值/路径格式不正确。"}
 
-	ErrUnKnow         = Err{Code: 9000, Msg: "位置错误，请稍后重试。"}
+	ErrUnKnow         = Err{Code: 9000, Msg: "未知错误，请稍后重试。"}
 
 
 	//ErrAuthorized     = Err{Code: 4100, Msg: "签名鉴权失败，请参考文档中鉴权部分。"}
@@ -51,18 +51,14 @@ var (
 
 
 	ErrUserNoExist        = Err{Code: 10030, Msg: "用户不存在,请检查后重试。"}
+	ErrLuckFinal		  = Err{Code: 10040, Msg: "奖品已发放完毕。"}
+	ErrLuckFail		      = Err{Code: 10050, Msg: "活动太火爆了，请稍后重试。"}
+
+
 	//ErrUserNameFormat     = Err{Code: 10040, Msg: fmt.Sprintf("用户名需字母开头长度(%d~%d)位字母数字_。", LenUserNameMin, LenUserNameMax)}
 	//ErrUserPwdFormat      = Err{Code: 10050, Msg: fmt.Sprintf("密码需字母开头长度(%d~%d)位字母数字_。", LenUserNameMin, LenPasswordMax)}
 	//ErrUserDescLen        = Err{Code: 10060, Msg: fmt.Sprintf("描述长度不能超过%d位,请改正后重试。", LenDesc)}
 	//ErrUserAddrLen        = Err{Code: 10070, Msg: fmt.Sprintf("地址长度不能超过%d位,请改正后重试。", LenAddr)}
 	//ErrUserEmailFormat    = Err{Code: 10080, Msg: "邮箱格式不正确,请检查后重试。"}
 	//ErrUserNickNameFormat = Err{Code: 10090, Msg: fmt.Sprintf("昵称长度在(%d~%d)之间,请改正后重试。", LenUserNameMin, LenUserNameMax)}
-	//ErrUpdateParams       = Err{Code: 10100, Msg: "修改用户信息,参数必填其一。"}
-	//ErrUserLinksNoExist   = Err{Code: 10110, Msg: "用户友链数据不存在,请检查后重试。"}
-	//ErrCategoryNoExist    = Err{Code: 10120, Msg: "该分类不存在,请检查后重试。"}
-	//ErrCategoryExist      = Err{Code: 10130, Msg: "该分类已存在,请修改后重试。"}
-	//ErrArticleNoExist     = Err{Code: 10140, Msg: "该文章不存在,请修改后重试。"}
-	//ErrUploadLenNotAllow  = Err{Code: 10150, Msg: "图片上传个数不允许,请修改后重试。"}
-	//ErrUploadExtNotAllow  = Err{Code: 10160, Msg: "仅支持jpg,jpeg,png格式图片,请修改后重试。"}
-	//ErrCollectSource      = Err{Code: 10170, Msg: "文章采集失败,请检查采集Url。"}
 )

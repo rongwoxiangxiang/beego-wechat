@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	wechatApi "github.com/silenceper/wechat"
-	wechatUserApi "github.com/silenceper/wechat/user"
 	"github.com/astaxie/beego/context"
 	"github.com/silenceper/wechat/cache"
 	"github.com/silenceper/wechat/message"
@@ -27,18 +26,18 @@ func init()  {
 
 func Service(ctx *context.Context) {
 	wechatConfig := config(ctx)
-	server := wechatApi.NewWechat(&wechatApi.Config{
+	wechaBase := wechatApi.NewWechat(&wechatApi.Config{
 		AppID:          wechatConfig["Appid"].(string),
 		AppSecret:      wechatConfig["Appsecret"].(string),
 		Token:          wechatConfig["Token"].(string),
 		EncodingAESKey: wechatConfig["EncodingAesKey"].(string),
 		Cache:			redis,
-	}).GetServer(ctx.Request, ctx.ResponseWriter)
-	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
-		return responseEventText(msg,wechatConfig)
-
 	})
-
+	server := wechaBase.GetServer(ctx.Request, ctx.ResponseWriter)
+	wxUser := getWechatUser(server.GetOpenID(), int64(wechatConfig["Id"].(float64)), wechaBase)
+	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+		return responseEventText(msg, wxUser)
+	})
 	//处理消息接收以及回复
 	err := server.Serve()
 	if err != nil {
@@ -48,54 +47,44 @@ func Service(ctx *context.Context) {
 	server.Send()
 }
 
-func responseEventText(msg message.MixMessage ,conf map[string]interface{}) *message.Reply {
+func responseEventText(msg message.MixMessage, user models.WechatUser) (msgReply *message.Reply) {
 	var reply models.Reply
-	switch msg.MsgType {
-	case message.MsgTypeText:
-		reply = models.Reply{Wid:int64(conf["Id"].(float64)), Alias:msg.Content}.FindOne()
-	case message.MsgTypeEvent:
-		if msg.Event != "" {
-			reply = models.Reply{Wid:int64(conf["Id"].(float64)), ClickKey:msg.EventKey}.FindOne()
-		}
-	default:
-		reply = models.Reply{Wid:int64(conf["Id"].(float64)), Alias:msg.EventKey}.FindOne()
+	if msg.MsgType == message.MsgTypeText {
+		reply = models.Reply{Wid:user.Wid, Alias:msg.Content}.FindOne()
+	} else if msg.MsgType == message.MsgTypeEvent {
+		reply = models.Reply{Wid:user.Wid, ClickKey:msg.EventKey}.FindOne()
+	} else {
+		reply = models.Reply{Wid:user.Wid, Alias:msg.EventKey}.FindOne()
 	}
-	return replyActivity(reply, msg.FromUserName)
-}
-
-
-func replyActivity(reply models.Reply, userOpenId string)(msgReply *message.Reply)  {
-	if reply.Id > 0 {
-		switch reply.Type {
-		case models.REPLY_TYPE_TEXT:
-			msgReply = &message.Reply{
-				MsgType: message.MsgTypeText,
-				MsgData: message.NewText(reply.Success),
-			}
-		case models.REPLY_TYPE_CODE:
-			msgReply = &message.Reply{
-				MsgType: message.MsgTypeText,
-				MsgData: message.NewText(doReplyCode(reply, userOpenId)),
-			}
-		case models.REPLY_TYPE_LUCKY:
-			msgReply = &message.Reply{
-				MsgType: message.MsgTypeText,
-				MsgData: message.NewText(doReplyLuck(reply, userOpenId)),
-			}
-		case models.REPLY_TYPE_CHECKIN:
-			msgReply = &message.Reply{
-				MsgType: message.MsgTypeText,
-				MsgData: message.NewText(doReplyCheckin(reply, userOpenId)),
-			}
-		default:
-			msgReply = &message.Reply{MsgType: message.MsgTypeText, MsgData: message.NewText(reply.Success)}
+	if reply.Id == 0 {
+		return
+	}
+	switch reply.Type {
+	case models.REPLY_TYPE_TEXT:
+		msgReply = &message.Reply{
+			MsgType: message.MsgTypeText,
+			MsgData: message.NewText(reply.Success),
+		}
+	case models.REPLY_TYPE_CODE:
+		msgReply = &message.Reply{
+			MsgType: message.MsgTypeText,
+			MsgData: message.NewText(doReplyCode(reply, user)),
+		}
+	case models.REPLY_TYPE_LUCKY:
+		msgReply = &message.Reply{
+			MsgType: message.MsgTypeText,
+			MsgData: message.NewText(doReplyLuck(reply, user)),
+		}
+	case models.REPLY_TYPE_CHECKIN:
+		msgReply = &message.Reply{
+			MsgType: message.MsgTypeText,
+			MsgData: message.NewText(doReplyCheckin(reply, user)),
 		}
 	}
 	return
 }
 
-func doReplyCode(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId, reply.Wid)
+func doReplyCode(reply models.Reply, wechatUser models.WechatUser) string {
 	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
 	if len(history) > 0 {
 		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
@@ -114,8 +103,7 @@ func doReplyCode(reply models.Reply, userOpenId string) string {
 	return models.PLEASE_TRY_AGAIN
 }
 
-func doReplyLuck(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId, reply.Wid)
+func doReplyLuck(reply models.Reply, wechatUser models.WechatUser) string {
 	history := models.PrizeHistory{ActivityId:reply.ActivityId,Wuid:wechatUser.Id}.GetByActivityWuId()
 	if len(history) > 0 {
 		return strings.Replace(reply.Success, "%prize%", history[0].Prize, 1)
@@ -135,8 +123,7 @@ func doReplyLuck(reply models.Reply, userOpenId string) string {
 	return strings.Replace(reply.Success, "%prize%", luck.Name, 1)
 }
 
-func doReplyCheckin(reply models.Reply, userOpenId string) string {
-	wechatUser := getWechatUser(userOpenId, reply.Wid)
+func doReplyCheckin(reply models.Reply, wechatUser models.WechatUser) string {
 	checkin := models.Checkin{ActivityId:reply.ActivityId,Wuid:wechatUser.Id,Wid:wechatUser.Wid}.GetCheckinByActivityWuid()
 	if checkin.Id == 0 {
 		return models.CHECK_FAIL
@@ -161,29 +148,26 @@ func doReplyCheckin(reply models.Reply, userOpenId string) string {
 		Replace(reply.Success)
 }
 
-func getWechatUser(userOpenId string, wid int64) (wu models.WechatUser) {
-	wu.Openid = userOpenId
-	wu.Wid = wid
-	wechatUser := wu.GetByOpenid()
-
-	go func(wechatUser models.WechatUser) {
-		if wechatUser.Openid != "" {
-			wUserApi := &wechatUserApi.User{}
-			userInfo, err := wUserApi.GetUserInfo(userOpenId)
+func getWechatUser(openId string, wid int64, wechatApi *wechatApi.Wechat) (user models.WechatUser) {
+	user.Wid = wid
+	user.Openid = openId
+	user = user.GetByOpenid()
+	go func(user models.WechatUser) {
+		if user.Openid != "" && user.UpdatedAt.After(time.Now().Add(-25 * time.Hour)) {
+			userInfo, err := wechatApi.GetUser().GetUserInfo(user.Openid)
 			if err == nil {
-				wechatUser.Nickname = userInfo.Nickname
-				wechatUser.Sex = userInfo.Sex
-				wechatUser.Province = userInfo.Province
-				wechatUser.City = userInfo.City
-				wechatUser.Country = userInfo.Country
-				wechatUser.Language = userInfo.Language
-				wechatUser.Headimgurl = userInfo.Headimgurl
-				wechatUser.Update()
+				user.Nickname = userInfo.Nickname
+				user.Sex = userInfo.Sex
+				user.Province = userInfo.Province
+				user.City = userInfo.City
+				user.Country = userInfo.Country
+				user.Language = userInfo.Language
+				user.Headimgurl = userInfo.Headimgurl
+				user.Update()
 			}
 		}
-	}(wechatUser)
-
-	return wechatUser
+	}(user)
+	return
 }
 
 func config(ctx *context.Context) map[string]interface{} {

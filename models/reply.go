@@ -79,6 +79,9 @@ func (r Reply) DeleteById() bool{
  * @Success []Reply
  */
 func (r Reply) FindOne() (replies Reply) {
+	if "" == r.Alias && "" == r.ClickKey {
+		return
+	}
 	qs := GetDB().QueryTable(r.TableName()).Filter("wid", r.Wid)
 	if "" != r.Alias {
 		qs = qs.Filter("alias", r.Alias)

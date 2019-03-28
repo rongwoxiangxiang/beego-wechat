@@ -34,8 +34,8 @@ func Service(ctx *context.Context) {
 		Cache:			redis,
 	})
 	server := wechaBase.GetServer(ctx.Request, ctx.ResponseWriter)
-	wxUser := getWechatUser(server.GetOpenID(), int64(wechatConfig["Id"].(float64)), wechaBase)
 	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+		wxUser := getWechatUser(msg.FromUserName, int64(wechatConfig["Id"].(float64)), wechaBase)
 		return responseEventText(msg, wxUser)
 	})
 	//处理消息接收以及回复
@@ -113,8 +113,9 @@ func doReplyLuck(reply models.Reply, wechatUser models.WechatUser) string {
 	luck, err := models.Lottery{Wid:reply.Wid, ActivityId:reply.ActivityId}.Luck()
 	if err == common.ErrLuckFinal {
 		return common.ErrLuckFinal.Msg
-	}
-	if err != nil {
+	} else if err == common.ErrDataUnExist {
+		return ""
+	} else if err != nil {
 		return common.ErrLuckFail.Msg
 	}
 	if luck.Name != "" {
